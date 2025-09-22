@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pixel Love Gift</title>
+<style>
+:root{
+  --peach:#ffd9b3;
+  --night-top:#07192a;
+  --night-bottom:#00111a;
+}
+html,body{
+  margin:0;
+  height:100%;
+  overflow:hidden;
+  font-family:'Courier New', monospace;
+  background: linear-gradient(180deg,var(--peach),#ffecd9);
+  transition: background 2s ease;
+}
+.wrapper{
+  position:relative;
+  width:100%;
+  height:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+canvas{
+  width:480px;
+  height:480px;
+  image-rendering:pixelated;
+}
+#startBtn{
+  display:none;
+  margin-top:18px;
+  padding:12px 20px;
+  font-size:1.1rem;
+  border:none;
+  border-radius:14px;
+  background:linear-gradient(180deg,#ff5a7a,#ff385f);
+  color:white;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(255,90,122,0.2);
+  transform-origin:center;
+}
+#scene{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+.floatingHeart{
+  position:absolute;
+  width:8px;
+  height:8px;
+  background:#ff4d6d;
+  border-radius:50%;
+  opacity:0.6;
+}
+#pixelText{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%) scale(0.8);
+  text-align:center;
+  font-family:'Courier New',monospace;
+  font-size:28px;
+  color:#000; /* black text */
+  text-shadow:0 0 6px #000,0 0 20px #555;
+  display:none;
+  pointer-events:none;
+  letter-spacing:2px;
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+<canvas id="heartCanvas" width="16" height="16"></canvas>
+<button id="startBtn">Press me cuttiee weetie 💖</button>
+<div id="scene"></div>
+<div id="pixelText">I LOVE YOU MY SWEETIE WEETIE</div>
+</div>
+<script>
+// Heart Data
+const HEART=[
+"0000011000000000","0001111110000000","0011111111000000","0111111111100000",
+"0111111111110000","0111111111110000","0011111111100000","0001111111000000",
+"0000111110000000","0000011100000000","0000001000000000","0000000000000000",
+"0000000000000000","0000000000000000","0000000000000000","0000000000000000"];
+
+const canvas=document.getElementById('heartCanvas'),ctx=canvas.getContext('2d');
+const startBtn=document.getElementById('startBtn'),scene=document.getElementById('scene');
+const pixelText=document.getElementById('pixelText');
+
+let drawOrder=[],iStep=0;
+
+// Arrange heart pixels
+(function(){
+  const w=HEART[0].length,h=HEART.length;
+  let pos=[];
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(HEART[y][x]==='1')pos.push([x,y]);
+  const cx=w/2,cy=h/3;pos.sort((a,b)=>Math.hypot(a[0]-cx,a[1]-cy)-Math.hypot(b[0]-cx,b[1]-cy));
+  drawOrder=pos;
+})();
+
+// Draw functions
+function clearCanvas(){ctx.clearRect(0,0,canvas.width,canvas.height);}
+function drawPixel(x,y,color){ctx.fillStyle=color;ctx.fillRect(x,y,1,1);}
+function animateHeartStep(){
+  if(iStep===0){clearCanvas();drawPixel(8,7,'#ff2b6f');}
+  for(let k=0;k<1 && iStep<drawOrder.length;k++,iStep++){const [x,y]=drawOrder[iStep];drawPixel(x,y,'#ff1a4d');}
+  if(iStep<drawOrder.length)setTimeout(animateHeartStep,180);
+  else startBtn.style.display='inline-block';
+}
+animateHeartStep();
+
+// Button Pulse
+let pulseInterval;
+function pulseButton(){let s=1,dir=1;pulseInterval=setInterval(()=>{s+=dir*0.008;if(s>1.06)dir=-1;if(s<0.98)dir=1;startBtn.style.transform=`scale(${s})`;},16);}
+pulseButton();
+
+// Floating hearts background
+let floatingHearts=[];
+function createFloatingHeart(){
+  const h=document.createElement('div');h.className='floatingHeart';
+  h.style.left=Math.random()*100+'vw';
+  h.style.bottom='-10px';
+  h.style.opacity=(0.3+Math.random()*0.4);
+  scene.appendChild(h);
+  const speed=0.2+Math.random()*0.2;
+  floatingHearts.push({el:h,speed:speed});
+}
+setInterval(()=>{if(floatingHearts.length<25)createFloatingHeart();},400);
+function animateFloatingHearts(){
+  floatingHearts.forEach((h,i)=>{
+    let bottom=parseFloat(h.el.style.bottom);
+    h.el.style.bottom=(bottom+h.speed)+'px';
+    if(bottom>window.innerHeight){h.el.remove();floatingHearts.splice(i,1);}
+  });
+  requestAnimationFrame(animateFloatingHearts);
+}
+animateFloatingHearts();
+
+// Sequence
+function dissolveHeart(callback){
+  let alpha=1;
+  function fade(){
+    clearCanvas();
+    for(let j=0;j<iStep;j++){
+      const [x,y]=drawOrder[j];
+      ctx.fillStyle=`rgba(255,26,77,${alpha})`;
+      ctx.fillRect(x,y,1,1);
+    }
+    alpha-=0.02;
+    if(alpha>0)requestAnimationFrame(fade);
+    else callback();
+  }
+  fade();
+}
+
+function showPixelText(){
+  pixelText.style.display='block';
+  pixelText.style.opacity=0;
+  pixelText.animate([{opacity:0,transform:'translate(-50%,-50%) scale(0.5)'},
+    {opacity:1,transform:'translate(-50%,-50%) scale(1)'}],
+    {duration:1000,fill:'forwards',easing:'cubic-bezier(.2,.9,.2,1)'});
+  setTimeout(()=>{
+    pixelText.animate([{opacity:1,transform:'translate(-50%,-50%) scale(1)'},
+      {opacity:0,transform:'translate(-50%,-50%) scale(2)'}],
+      {duration:1500,fill:'forwards',easing:'ease-in-out'});
+  },2500);
+}
+
+startBtn.addEventListener('click',()=>{
+  startBtn.style.transition='transform 250ms,opacity 300ms';
+  startBtn.style.opacity=0;startBtn.style.transform='translateY(10px) scale(.92)';
+  setTimeout(()=>startBtn.style.display='none',320);
+  pulseInterval&&clearInterval(pulseInterval);
+  dissolveHeart(()=>{showPixelText();});
+});
+</script>
+</body>
+</html>
